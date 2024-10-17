@@ -1,16 +1,9 @@
 import datetime
 import mailer
-import json
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
-def mailer_job(email, templateId):
-    mailer.SendDynamic(email, templateId)
-    
-def whatsapp_job(email, templateId):
-    return
 
 from flask import Flask, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -18,7 +11,7 @@ from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from flask import request
-from models import db, MessageGroupUser
+from models import db, MessageGroupUser, MessageGroup, Job
 
 database_host: str = os.getenv('DATABASE_HOST')
 database_username: str = os.getenv('DATABASE_USERNAME')
@@ -59,15 +52,16 @@ def jobs():
     if request.method == 'GET':
         result = []
         for job in scheduler.get_jobs():
-            print(job.next_run_time)
             result.append({
                 'name' : job.name,
                 'next_run_time' : str(job.next_run_time)
 			})
         return result
     elif request.method == 'POST':
-        timestamp = datetime.datetime(2024, 10, 17, 1, 19)
-        job = scheduler.add_job(mailer_job,DateTrigger(run_date=timestamp),args=['test_email',test_sendgrid_template],id="test",second='*/20',jobstore='default')
+        input = request.get_json()
+        timestamp = datetime.datetime.strptime(input['timestamp'], "%Y-%m-%dT%H:%M:%S")
+        job = Job(input['messageGroupId'], input['templateId'], timestamp)
+        job = scheduler.add_job(mailer_job,DateTrigger(run_date=job.timestamp),args=[job.messageGroupId,job.templateId],id="test",jobstore='default')
         result = []
         for job in scheduler.get_jobs():
             print(job.next_run_time)
@@ -86,6 +80,12 @@ def jobs():
                 'next_run_time' : str(job.next_run_time)
 			})
         return result
-
+    
+def mailer_job(messageGroupId, templateId):
+    with app.app_context():
+        messageGroupUsers = MessageGroupUser.query.filter_by(groupId=messageGroupId).all()
+        for item in messageGroupUsers:
+            mailer.SendDynamic(item.emailOrPhone, templateId)
+    
 if __name__ == '__main__':
     app.run(debug=True)

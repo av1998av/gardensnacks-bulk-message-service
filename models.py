@@ -4,6 +4,15 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 db = SQLAlchemy()
 
+class Job():
+    messageGroupId = ''
+    templateId = ''
+    timestamp =  None
+    def __init__(self,messageGroupId,templateId,timestamp):
+        self.messageGroupId = messageGroupId
+        self.templateId = templateId
+        self.timestamp = timestamp
+
 class MessageGroupUser(db.Model):
     __tablename__ = 'MessageGroupUsers'
     id = mapped_column(db.Integer, primary_key=True)
@@ -17,3 +26,9 @@ class MessageGroupUser(db.Model):
             "userId": self.userId,
             "groupId": self.groupId,
         }
+    
+class MessageGroup(db.Model):
+    __tablename__ = 'MessageGroups'
+    id = mapped_column(db.Integer, primary_key=True)
+    name = mapped_column(db.String)
+    category = mapped_column(db.String)
