@@ -7,11 +7,13 @@ db = SQLAlchemy()
 class Job():
     messageGroupId = ''
     templateId = ''
+    content = ''
     timestamp =  None
-    def __init__(self,messageGroupId,templateId,timestamp):
+    def __init__(self,messageGroupId,templateId,timestamp,content):
         self.messageGroupId = messageGroupId
         self.templateId = templateId
         self.timestamp = timestamp
+        self.content = content
 
 class MessageGroupUser(db.Model):
     __tablename__ = 'MessageGroupUsers'

@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from flask import Flask, jsonify
+from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.triggers.date import DateTrigger
@@ -38,6 +39,7 @@ job_defaults = {
 scheduler = BackgroundScheduler(jobstores=jobstores,executors=executors,job_defaults=job_defaults)
 
 app = Flask(__name__)
+CORS(app)
 
 scheduler.start()
 
@@ -83,8 +85,8 @@ def jobs():
     elif request.method == 'POST':
         input = request.get_json()
         timestamp = datetime.datetime.strptime(input['timestamp'], "%Y-%m-%dT%H:%M:%S")
-        job = Job(input['messageGroupId'], input['templateId'], timestamp)
-        job = scheduler.add_job(mailer_job,DateTrigger(run_date=job.timestamp),args=[job.messageGroupId,job.templateId],id="test",jobstore='default')
+        job = Job(input['messageGroupId'], input['templateId'], timestamp, input['content'])
+        job = scheduler.add_job(mailer_job,DateTrigger(run_date=job.timestamp),args=[job.messageGroupId,job.templateId,job.content],id="test",jobstore='default')
         result = []
         for job in scheduler.get_jobs():
             print(job.next_run_time)
@@ -104,11 +106,11 @@ def jobs():
 			})
         return result
     
-def mailer_job(messageGroupId, templateId):
+def mailer_job(messageGroupId, templateId, content):
     with app.app_context():
         messageGroupUsers = MessageGroupUser.query.filter_by(groupId=messageGroupId).all()
         for item in messageGroupUsers:
-            mailer.SendDynamic(item.emailOrPhone, templateId)
+            mailer.SendDynamic(item.emailOrPhone, templateId, content)
     
 if __name__ == '__main__':
     app.run(debug=True)
